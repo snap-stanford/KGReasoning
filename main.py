@@ -209,7 +209,7 @@ def main(args):
         prefix = args.prefix
 
     print ("overwritting args.save_path")
-    args.save_path = os.path.join(prefix, "%s-%s"%(args.data_path.split('/')[-1], args.tasks), args.geo)
+    args.save_path = os.path.join(prefix, args.data_path.split('/')[-1], args.tasks, args.geo)
     if args.geo in ['box']:
         tmp_str = "g-{}-mode-{}".format(args.gamma, args.box_mode)
     elif args.geo in ['vec']:
