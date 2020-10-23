@@ -1,0 +1,9 @@
+logs/
+*__pycache__*
+data/
+*.sh
+
+*.svg
+*.pdf
+*.eps
+submission/
