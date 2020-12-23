@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from torch.utils.data import Dataset
-from util import list2tuple, tuple2list, flatten
+from kgreasoning.util import list2tuple, tuple2list, flatten
 
 class TestDataset(Dataset):
     def __init__(self, queries, nentity, nrelation):
