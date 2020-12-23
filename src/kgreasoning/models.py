@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from kgreasoning.dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
 import random
 import pickle
 import math

@@ -13,14 +13,14 @@ import random
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from models import KGReasoning
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from kgreasoning.models import KGReasoning
+from kgreasoning.dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
 from tensorboardX import SummaryWriter
 import time
 import pickle
 from collections import defaultdict
 from tqdm import tqdm
-from util import flatten_query, list2tuple, parse_time, set_global_seed, eval_tuple
+from kgreasoning.util import flatten_query, list2tuple, parse_time, set_global_seed, eval_tuple
 
 query_name_dict = {('e',('r',)): '1p', 
                     ('e', ('r', 'r')): '2p',
