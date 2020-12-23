@@ -6,6 +6,22 @@ This repo contains several algorithms for multi-hop reasoning on knowledge graph
 - [x] [Query2box](https://arxiv.org/abs/2002.05969)
 - [x] [GQE](https://arxiv.org/abs/1806.01445)
 
+## Installation
+
+Install directly from GitHub with:
+
+```shell
+$ pip install git+https://github.com/snap-stanford/KGReasoning.git
+```
+
+Install in development mode with:
+
+```shell
+$ git clone https://github.com/snap-stanford/KGReasoning.git
+$ cd KGReasoning
+$ pip install -e .
+```
+
 **KG Data**
 
 The KG data (FB15k, FB15k-237, NELL995) mentioned in the BetaE paper and the Query2box paper can be downloaded [here](http://snap.stanford.edu/betae/KG_data.zip). Note the two use the same training queries, but the difference is that the valid/test queries in BetaE paper have a maximum number of answers, making it more realistic.
