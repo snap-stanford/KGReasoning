@@ -193,7 +193,7 @@ def load_data(args, tasks):
 
     return train_queries, train_answers, valid_queries, valid_hard_answers, valid_easy_answers, test_queries, test_hard_answers, test_easy_answers
 
-def main(args):
+def main_helper(args):
     set_global_seed(args.seed)
     tasks = args.tasks.split('.')
     for task in tasks:
@@ -445,5 +445,10 @@ def main(args):
 
     logging.info("Training finished!!")
 
+
+def main():
+    main_helper(parse_args())
+
+
 if __name__ == '__main__':
-    main(parse_args())
+    main()
