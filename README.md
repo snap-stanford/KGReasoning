@@ -22,6 +22,18 @@ $ cd KGReasoning
 $ pip install -e .
 ```
 
+## Command Line Interface
+
+The `kgreasoning` command line tool is automatically installed. It can
+be used like in the following:
+
+```bash
+$ CUDA_VISIBLE_DEVICES=0 kgreasoning --cuda --do_train --do_valid --do_test \
+    --data_path data/FB15k-237-betae -n 128 -b 512 -d 800 -g 24 \
+    -lr 0.0001 --max_steps 450001 --cpu_num 1 --geo vec --valid_steps 15000 \
+    --tasks "1p.2p.3p.2i.3i.ip.pi.2u.up"
+```
+
 **KG Data**
 
 The KG data (FB15k, FB15k-237, NELL995) mentioned in the BetaE paper and the Query2box paper can be downloaded [here](http://snap.stanford.edu/betae/KG_data.zip). Note the two use the same training queries, but the difference is that the valid/test queries in BetaE paper have a maximum number of answers, making it more realistic.
