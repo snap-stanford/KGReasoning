@@ -306,9 +306,6 @@ class CQD(nn.Module):
                 def t_conorm(a: Tensor, b: Tensor) -> Tensor:
                     return torch.maximum(a, b)
 
-                def negation(a: Tensor) -> Tensor:
-                    return 1.0 - a
-
                 if self.t_norm_name == CQD.PROD_NORM:
                     def t_norm(a: Tensor, b: Tensor) -> Tensor:
                         return a * b
@@ -380,36 +377,6 @@ class CQD(nn.Module):
                                              queries=queries,
                                              scoring_function=scoring_function,
                                              t_norm=t_norm, t_conorm=t_conorm)
-                elif graph_type == "2in":
-                    scores = d2.query_2in(entity_embeddings=self.embeddings[0],
-                                          predicate_embeddings=self.embeddings[1],
-                                          queries=queries,
-                                          scoring_function=scoring_function,
-                                          t_norm=t_norm, negation=negation)
-                elif graph_type == "3in":
-                    scores = d2.query_3in(entity_embeddings=self.embeddings[0],
-                                          predicate_embeddings=self.embeddings[1],
-                                          queries=queries,
-                                          scoring_function=scoring_function,
-                                          t_norm=t_norm, negation=negation)
-                elif graph_type == "pin":
-                    scores = d2.query_pin(entity_embeddings=self.embeddings[0],
-                                          predicate_embeddings=self.embeddings[1],
-                                          queries=queries,
-                                          scoring_function=scoring_function,
-                                          k=self.k, t_norm=t_norm, negation=negation)
-                elif graph_type == "pni":
-                    scores = d2.query_pni_v2(entity_embeddings=self.embeddings[0],
-                                             predicate_embeddings=self.embeddings[1],
-                                             queries=queries,
-                                             scoring_function=scoring_function,
-                                             k=self.k, t_norm=t_norm, negation=negation)
-                elif graph_type == "inp":
-                    scores = d2.query_inp(entity_embeddings=self.embeddings[0],
-                                          predicate_embeddings=self.embeddings[1],
-                                          queries=queries,
-                                          scoring_function=scoring_function,
-                                          t_norm=t_norm, negation=negation)
                 else:
                     raise ValueError(f'Unknown query type: {graph_type}')
 
