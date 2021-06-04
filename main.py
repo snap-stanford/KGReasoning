@@ -8,19 +8,21 @@ import argparse
 import json
 import logging
 import os
-import random
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from models import KGReasoning
+from cqd import CQD
+
 from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from cqd.dataloader import CQDTrainDataset
+
 from tensorboardX import SummaryWriter
-import time
+
 import pickle
 from collections import defaultdict
-from tqdm import tqdm
-from util import flatten_query, list2tuple, parse_time, set_global_seed, eval_tuple
+from util import flatten_query, parse_time, set_global_seed, eval_tuple
 
 query_name_dict = {('e',('r',)): '1p', 
                     ('e', ('r', 'r')): '2p',
@@ -41,6 +43,7 @@ query_name_dict = {('e',('r',)): '1p',
                 }
 name_query_dict = {value: key for key, value in query_name_dict.items()}
 all_tasks = list(name_query_dict.keys()) # ['1p', '2p', '3p', '2i', '3i', 'ip', 'pi', '2in', '3in', 'inp', 'pin', 'pni', '2u-DNF', '2u-DM', 'up-DNF', 'up-DM']
+
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(
@@ -74,8 +77,17 @@ def parse_args(args=None):
     parser.add_argument('--nentity', type=int, default=0, help='DO NOT MANUALLY SET')
     parser.add_argument('--nrelation', type=int, default=0, help='DO NOT MANUALLY SET')
     
-    parser.add_argument('--geo', default='vec', type=str, choices=['vec', 'box', 'beta'], help='the reasoning model, vec for GQE, box for Query2box, beta for BetaE')
+    parser.add_argument('--geo', default='vec', type=str, choices=['vec', 'box', 'beta', 'cqd'], help='the reasoning model, vec for GQE, box for Query2box, beta for BetaE, cqd for CQD')
     parser.add_argument('--print_on_screen', action='store_true')
+
+    parser.add_argument('--reg_weight', default=1e-3, type=float)
+    parser.add_argument('--optimizer', choices=['adam', 'adagrad'], default='adam')
+    parser.add_argument('--cqd-type', '--cqd', default='co', type=str, choices=['continuous', 'discrete'])
+    parser.add_argument('--cqd-t-norm', default=CQD.PROD_NORM, type=str, choices=CQD.NORMS)
+    parser.add_argument('--cqd-k', default=5, type=int)
+    parser.add_argument('--cqd-sigmoid-scores', '--cqd-sigmoid', action='store_true', default=False)
+    parser.add_argument('--cqd-normalize-scores', '--cqd-normalize', action='store_true', default=False)
+    parser.add_argument('--use-qa-iterator', action='store_true', default=False)
     
     parser.add_argument('--tasks', default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', type=str, help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
     parser.add_argument('--seed', default=0, type=int, help="random seed")
@@ -86,6 +98,7 @@ def parse_args(args=None):
     parser.add_argument('-evu', '--evaluate_union', default="DNF", type=str, choices=['DNF', 'DM'], help='the way to evaluate union queries, transform it to disjunctive normal form (DNF) or use the De Morgan\'s laws (DM)')
 
     return parser.parse_args(args)
+
 
 def save_model(model, optimizer, save_variable_list, args):
     '''
@@ -103,6 +116,7 @@ def save_model(model, optimizer, save_variable_list, args):
         'optimizer_state_dict': optimizer.state_dict()},
         os.path.join(args.save_path, 'checkpoint')
     )
+
 
 def set_logger(args):
     '''
@@ -127,12 +141,14 @@ def set_logger(args):
         console.setFormatter(formatter)
         logging.getLogger('').addHandler(console)
 
+
 def log_metrics(mode, step, metrics):
     '''
     Print the evaluation logs
     '''
     for metric in metrics:
         logging.info('%s %s at step %d: %f' % (mode, metric, step, metrics[metric]))
+
 
 def evaluate(model, tp_answers, fn_answers, args, dataloader, query_name_dict, mode, step, writer):
     '''
@@ -141,7 +157,7 @@ def evaluate(model, tp_answers, fn_answers, args, dataloader, query_name_dict, m
     average_metrics = defaultdict(float)
     all_metrics = defaultdict(float)
 
-    metrics = model.test_step(model, tp_answers, fn_answers, args, dataloader, query_name_dict)
+    metrics = KGReasoning.test_step(model, tp_answers, fn_answers, args, dataloader, query_name_dict)
     num_query_structures = 0
     num_queries = 0
     for query_structure in metrics:
@@ -161,7 +177,8 @@ def evaluate(model, tp_answers, fn_answers, args, dataloader, query_name_dict, m
     log_metrics('%s average'%mode, step, average_metrics)
 
     return all_metrics
-        
+
+
 def load_data(args, tasks):
     '''
     Load queries and remove queries not in tasks
@@ -192,6 +209,7 @@ def load_data(args, tasks):
                 del test_queries[query_structure]
 
     return train_queries, train_answers, valid_queries, valid_hard_answers, valid_easy_answers, test_queries, test_hard_answers, test_easy_answers
+
 
 def main(args):
     set_global_seed(args.seed)
@@ -263,21 +281,26 @@ def main(args):
             else:
                 train_other_queries[query_structure] = train_queries[query_structure]
         train_path_queries = flatten_query(train_path_queries)
+
+        TrainDatasetClass = TrainDataset
+        if args.use_qa_iterator is True:
+            TrainDatasetClass = CQDTrainDataset
+
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-                                    TrainDataset(train_path_queries, nentity, nrelation, args.negative_sample_size, train_answers),
+                                    TrainDatasetClass(train_path_queries, nentity, nrelation, args.negative_sample_size, train_answers),
                                     batch_size=args.batch_size,
                                     shuffle=True,
                                     num_workers=args.cpu_num,
-                                    collate_fn=TrainDataset.collate_fn
+                                    collate_fn=TrainDatasetClass.collate_fn
                                 ))
         if len(train_other_queries) > 0:
             train_other_queries = flatten_query(train_other_queries)
             train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                                        TrainDataset(train_other_queries, nentity, nrelation, args.negative_sample_size, train_answers),
+                                        TrainDatasetClass(train_other_queries, nentity, nrelation, args.negative_sample_size, train_answers),
                                         batch_size=args.batch_size,
                                         shuffle=True,
                                         num_workers=args.cpu_num,
-                                        collate_fn=TrainDataset.collate_fn
+                                        collate_fn=TrainDatasetClass.collate_fn
                                     ))
         else:
             train_other_iterator = None
@@ -315,18 +338,39 @@ def main(args):
             collate_fn=TestDataset.collate_fn
         )
 
-    model = KGReasoning(
-        nentity=nentity,
-        nrelation=nrelation,
-        hidden_dim=args.hidden_dim,
-        gamma=args.gamma,
-        geo=args.geo,
-        use_cuda = args.cuda,
-        box_mode=eval_tuple(args.box_mode),
-        beta_mode = eval_tuple(args.beta_mode),
-        test_batch_size=args.test_batch_size,
-        query_name_dict = query_name_dict
-    )
+    if args.geo == 'cqd':
+        model = CQD(nentity,
+                    nrelation,
+                    rank=args.hidden_dim,
+                    test_batch_size=args.test_batch_size,
+                    reg_weight=args.reg_weight,
+                    query_name_dict=query_name_dict,
+                    method=args.cqd_type,
+                    t_norm_name=args.cqd_t_norm,
+                    k=args.cqd_k,
+                    do_sigmoid=args.cqd_sigmoid_scores,
+                    do_normalize=args.cqd_normalize_scores)
+    else:
+        model = KGReasoning(
+            nentity=nentity,
+            nrelation=nrelation,
+            hidden_dim=args.hidden_dim,
+            gamma=args.gamma,
+            geo=args.geo,
+            use_cuda = args.cuda,
+            box_mode=eval_tuple(args.box_mode),
+            beta_mode = eval_tuple(args.beta_mode),
+            test_batch_size=args.test_batch_size,
+            query_name_dict = query_name_dict
+        )
+
+    name_to_optimizer = {
+        'adam': torch.optim.Adam,
+        'adagrad': torch.optim.Adagrad
+    }
+
+    assert args.optimizer in name_to_optimizer
+    OptimizerClass = name_to_optimizer[args.optimizer]
 
     logging.info('Model Parameter Configuration:')
     num_params = 0
@@ -341,7 +385,7 @@ def main(args):
     
     if args.do_train:
         current_learning_rate = args.learning_rate
-        optimizer = torch.optim.Adam(
+        optimizer = OptimizerClass(
             filter(lambda p: p.requires_grad, model.parameters()), 
             lr=current_learning_rate
         )
@@ -349,7 +393,8 @@ def main(args):
 
     if args.checkpoint_path is not None:
         logging.info('Loading checkpoint %s...' % args.checkpoint_path)
-        checkpoint = torch.load(os.path.join(args.checkpoint_path, 'checkpoint'))
+        checkpoint = torch.load(os.path.join(args.checkpoint_path, 'checkpoint'),
+                                map_location=torch.device('cpu') if not args.cuda else None)
         init_step = checkpoint['step']
         model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -396,7 +441,7 @@ def main(args):
             if step >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 5
                 logging.info('Change learning_rate to %f at step %d' % (current_learning_rate, step))
-                optimizer = torch.optim.Adam(
+                optimizer = OptimizerClass(
                     filter(lambda p: p.requires_grad, model.parameters()), 
                     lr=current_learning_rate
                 )
@@ -444,6 +489,7 @@ def main(args):
         test_all_metrics = evaluate(model, test_easy_answers, test_hard_answers, args, test_dataloader, query_name_dict, 'Test', step, writer)
 
     logging.info("Training finished!!")
+
 
 if __name__ == '__main__':
     main(parse_args())
