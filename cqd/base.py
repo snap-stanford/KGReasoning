@@ -68,8 +68,8 @@ class CQD(nn.Module):
 
         # XXX: get rid of this hack
         test_batch_size = 1000
-        batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
-        self.register_buffer('batch_entity_range', batch_entity_range)
+        self.batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
+        # self.register_buffer('batch_entity_range', batch_entity_range)
 
     def split(self,
               lhs_emb: Tensor,
