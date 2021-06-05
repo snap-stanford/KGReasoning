@@ -5,20 +5,14 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
-import random
-import pickle
-import math
 import collections
-import itertools
-import time
+
+from cqd import CQD
+
 from tqdm import tqdm
-import os
 
 def Identity(x):
     return x
@@ -584,16 +578,24 @@ class KGReasoning(nn.Module):
             negative_sample = negative_sample.cuda()
             subsampling_weight = subsampling_weight.cuda()
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+        if isinstance(model, CQD):
+            input_batch = batch_queries_dict[('e', ('r',))]
+            input_batch = torch.cat((input_batch, positive_sample.unsqueeze(1)), dim=1)
+            loss = model.loss(input_batch)
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
+            positive_sample_loss = negative_sample_loss = loss
+        else:
+            positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
-        loss = (positive_sample_loss + negative_sample_loss)/2
+            negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
+            positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
+            positive_sample_loss = - (subsampling_weight * positive_score).sum()
+            negative_sample_loss = - (subsampling_weight * negative_score).sum()
+            positive_sample_loss /= subsampling_weight.sum()
+            negative_sample_loss /= subsampling_weight.sum()
+
+            loss = (positive_sample_loss + negative_sample_loss)/2
+
         loss.backward()
         optimizer.step()
         log = {
