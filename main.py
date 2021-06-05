@@ -352,7 +352,8 @@ def main(args):
                     t_norm_name=args.cqd_t_norm,
                     k=args.cqd_k,
                     do_sigmoid=args.cqd_sigmoid_scores,
-                    do_normalize=args.cqd_normalize_scores)
+                    do_normalize=args.cqd_normalize_scores,
+                    use_cuda=args.cuda)
     else:
         model = KGReasoning(
             nentity=nentity,
