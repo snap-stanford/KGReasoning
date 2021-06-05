@@ -389,7 +389,7 @@ def main(args):
             filter(lambda p: p.requires_grad, model.parameters()), 
             lr=current_learning_rate
         )
-        warm_up_steps = args.max_steps // 2
+        warm_up_steps = args.max_steps // 2 if args.warm_up_steps is None else args.warm_up_steps
 
     if args.checkpoint_path is not None:
         logging.info('Loading checkpoint %s...' % args.checkpoint_path)
