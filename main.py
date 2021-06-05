@@ -360,11 +360,11 @@ def main(args):
             hidden_dim=args.hidden_dim,
             gamma=args.gamma,
             geo=args.geo,
-            use_cuda = args.cuda,
+            use_cuda=args.cuda,
             box_mode=eval_tuple(args.box_mode),
-            beta_mode = eval_tuple(args.beta_mode),
+            beta_mode=eval_tuple(args.beta_mode),
             test_batch_size=args.test_batch_size,
-            query_name_dict = query_name_dict
+            query_name_dict=query_name_dict
         )
 
     name_to_optimizer = {
