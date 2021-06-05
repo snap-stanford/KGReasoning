@@ -67,13 +67,7 @@ class CQD(nn.Module):
         self.do_sigmoid = do_sigmoid
         self.do_normalize = do_normalize
 
-        # XXX: get rid of this hack
-        # test_batch_size = 1000
-        # self.batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
-        # self.register_buffer('batch_entity_range', batch_entity_range)
-
         self.use_cuda = use_cuda
-
         self.batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
         if self.use_cuda is True:
             self.batch_entity_range = self.batch_entity_range.cuda()
