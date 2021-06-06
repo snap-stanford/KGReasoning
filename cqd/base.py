@@ -38,7 +38,7 @@ class CQD(nn.Module):
                  init_size: float = 1e-3,
                  reg_weight: float = 1e-2,
                  test_batch_size: int = 1,
-                 method: str = 'beam',
+                 method: str = 'discrete',
                  t_norm_name: str = 'prod',
                  k: int = 5,
                  query_name_dict: Optional[Dict] = None,
