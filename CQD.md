@@ -21,11 +21,6 @@ Our code is based on an implementation of ComplEx-N3 available [here](https://gi
 
 ```bash
 $ mkdir models/
-$ wget -c http://data.neuralnoise.com/cqd-models/fb15k-betae.tar.gz
-$ wget -c http://data.neuralnoise.com/cqd-models/fb15k-q2b.tar.gz
-$ wget -c http://data.neuralnoise.com/cqd-models/fb15k-237-betae.tar.gz
-$ wget -c http://data.neuralnoise.com/cqd-models/fb15k-237-q2b.tar.gz
-$ wget -c http://data.neuralnoise.com/cqd-models/nell-betae.tar.gz
-$ wget -c http://data.neuralnoise.com/cqd-models/nell-q2b.tar.gz
-$ for z in *.tar.gz; do tar xvfz $z; done
+$ for i in "fb15k" "fb15k-237" "nell"; do for j in "betae" "q2b"; do wget -c http://data.neuralnoise.com/kgreasoning-cqd/$i-$j.tar.gz; done; done
+$ for i in *.tar.gz; do tar xvfz $i; done
 ```
