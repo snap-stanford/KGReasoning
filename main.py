@@ -82,7 +82,7 @@ def parse_args(args=None):
 
     parser.add_argument('--reg_weight', default=1e-3, type=float)
     parser.add_argument('--optimizer', choices=['adam', 'adagrad'], default='adam')
-    parser.add_argument('--cqd-type', '--cqd', default='co', type=str, choices=['continuous', 'discrete'])
+    parser.add_argument('--cqd-type', '--cqd', default='discrete', type=str, choices=['continuous', 'discrete'])
     parser.add_argument('--cqd-t-norm', default=CQD.PROD_NORM, type=str, choices=CQD.NORMS)
     parser.add_argument('--cqd-k', default=5, type=int)
     parser.add_argument('--cqd-sigmoid-scores', '--cqd-sigmoid', action='store_true', default=False)

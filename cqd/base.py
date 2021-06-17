@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch import optim, Tensor
 import math
 
-from cqd.util import query_to_atoms, create_instructions, top_k_selection
+from cqd.util import query_to_atoms
 import cqd.discrete as d2
 
 from typing import Tuple, List, Optional, Dict
@@ -217,7 +217,7 @@ class CQD(nn.Module):
                 h_emb_constants = self.embeddings[0](head)
                 r_emb = self.embeddings[1](rel)
 
-            if 'co' in self.method:
+            if 'continuous' in self.method:
                 h_emb = h_emb_constants
                 if num_variables > 1:
                     # var embedding for ID 0 is unused for ease of implementation
@@ -274,29 +274,6 @@ class CQD(nn.Module):
                     all_scores.append(query_score)
 
                 scores = torch.cat(all_scores, dim=0)
-
-            elif 'continuous' in self.method:
-                graph_type = self.query_name_dict[query_structure]
-
-                chain_instructions = create_instructions(atoms[0])
-                chains = []
-
-                for atom in range(len(atoms[0])):
-                    part = atoms[:, atom, :]
-                    chain = self.get_full_embeddings(part)
-                    chains.append(chain)
-
-                scores = top_k_selection(chains,
-                                         chain_instructions,
-                                         graph_type,
-                                         # score_o takes lhs, rel, rhs
-                                         scoring_function=lambda rel_, lhs_, rhs_: self.score_o(lhs_, rel_, rhs_)[0],
-                                         forward_emb=lambda lhs_, rel_: self.score_o(lhs_, rel_, self.embeddings[0].weight)[0],
-                                         entity_embeddings=self.embeddings[0],
-                                         candidates=self.k,
-                                         t_norm=self.t_norm_name,
-                                         batch_size=1,
-                                         scores_normalize='default')
 
             elif 'discrete' in self.method:
                 graph_type = self.query_name_dict[query_structure]
