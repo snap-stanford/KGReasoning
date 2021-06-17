@@ -639,18 +639,11 @@ class KGReasoning(nn.Module):
                 if len(argsort) == args.test_batch_size: # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
                     ranking = ranking.scatter_(1, argsort, model.batch_entity_range) # achieve the ranking of all entities
                 else: # otherwise, create a new torch Tensor for batch_entity_range
+                    scatter_src = torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 1)
                     if args.cuda:
-                        ranking = ranking.scatter_(1, 
-                                                   argsort, 
-                                                   torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 
-                                                                                                      1).cuda()
-                                                   ) # achieve the ranking of all entities
-                    else:
-                        ranking = ranking.scatter_(1, 
-                                                   argsort, 
-                                                   torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 
-                                                                                                      1)
-                                                   ) # achieve the ranking of all entities
+                        scatter_src = scatter_src.cuda()
+                    # achieve the ranking of all entities
+                    ranking = ranking.scatter_(1, argsort, scatter_src)
                 for idx, (i, query, query_structure) in enumerate(zip(argsort[:, 0], queries_unflatten, query_structures)):
                     hard_answer = hard_answers[query]
                     easy_answer = easy_answers[query]
