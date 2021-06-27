@@ -342,7 +342,7 @@ class CQD(nn.Module):
                                          predicate_embeddings=self.embeddings[1],
                                          queries=queries,
                                          scoring_function=scoring_function,
-                                         t_norm=t_norm)
+                                         k=self.k, t_norm=t_norm)
                 elif graph_type == "2u-DNF":
                     scores = d2.query_2u_dnf(entity_embeddings=self.embeddings[0],
                                              predicate_embeddings=self.embeddings[1],
@@ -354,7 +354,7 @@ class CQD(nn.Module):
                                              predicate_embeddings=self.embeddings[1],
                                              queries=queries,
                                              scoring_function=scoring_function,
-                                             t_norm=t_norm, t_conorm=t_conorm)
+                                             k=self.k, t_norm=t_norm, t_conorm=t_conorm)
                 else:
                     raise ValueError(f'Unknown query type: {graph_type}')
 

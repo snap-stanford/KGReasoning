@@ -206,6 +206,7 @@ def query_ip(entity_embeddings: nn.Module,
              predicate_embeddings: nn.Module,
              queries: Tensor,
              scoring_function: Callable[[Tensor, Tensor, Tensor], Tensor],
+             k: int,
              t_norm: Callable[[Tensor, Tensor], Tensor]) -> Tensor:
 
     # [B, N]
@@ -222,18 +223,26 @@ def query_ip(entity_embeddings: nn.Module,
     e_emb = entity_embeddings.weight
     nb_entities = e_emb.shape[0]
 
-    # [B * N, E]
-    s_emb = e_emb.reshape(1, nb_entities, emb_size).repeat(batch_size, 1, 1).reshape(-1, emb_size)
+    k_ = min(k, nb_entities)
 
-    # [B * N, N]
-    scores_2, _ = score_candidates(s_emb=s_emb, p_emb=p_emb, candidates_emb=e_emb, k=None,
+    # [B, K], [B, K]
+    scores_1_k, scores_1_k_indices = torch.topk(scores_1, k=k_, dim=1)
+
+    # [B, K, E]
+    scores_1_k_emb = entity_embeddings(scores_1_k_indices)
+
+    # [B * K, E]
+    scores_1_k_emb_2d = scores_1_k_emb.reshape(batch_size * k_, emb_size)
+
+    # [B * K, N]
+    scores_2, _ = score_candidates(s_emb=scores_1_k_emb_2d, p_emb=p_emb, candidates_emb=e_emb, k=None,
                                    entity_embeddings=entity_embeddings, scoring_function=scoring_function)
 
-    # [B, N, N]
-    scores_1 = scores_1.reshape(batch_size, nb_entities, 1).repeat(1, 1, nb_entities)
-    scores_2 = scores_2.reshape(batch_size, nb_entities, nb_entities)
+    # [B * K, N]
+    scores_1_k = scores_1_k.reshape(batch_size, k_, 1).repeat(1, 1, nb_entities)
+    scores_2 = scores_2.reshape(batch_size, k_, nb_entities)
 
-    res = t_norm(scores_1, scores_2)
+    res = t_norm(scores_1_k, scores_2)
     res, _ = torch.max(res, dim=1)
 
     return res
@@ -276,6 +285,7 @@ def query_up_dnf(entity_embeddings: nn.Module,
                  predicate_embeddings: nn.Module,
                  queries: Tensor,
                  scoring_function: Callable[[Tensor, Tensor, Tensor], Tensor],
+                 k: int,
                  t_norm: Callable[[Tensor, Tensor], Tensor],
                  t_conorm: Callable[[Tensor, Tensor], Tensor]) -> Tensor:
     # [B, N]
@@ -292,18 +302,26 @@ def query_up_dnf(entity_embeddings: nn.Module,
     e_emb = entity_embeddings.weight
     nb_entities = e_emb.shape[0]
 
-    # [B * N, E]
-    s_emb = e_emb.reshape(1, nb_entities, emb_size).repeat(batch_size, 1, 1).reshape(-1, emb_size)
+    k_ = min(k, nb_entities)
 
-    # [B * N, N]
-    scores_2, _ = score_candidates(s_emb=s_emb, p_emb=p_emb, candidates_emb=e_emb, k=None,
+    # [B, K], [B, K]
+    scores_1_k, scores_1_k_indices = torch.topk(scores_1, k=k_, dim=1)
+
+    # [B, K, E]
+    scores_1_k_emb = entity_embeddings(scores_1_k_indices)
+
+    # [B * K, E]
+    scores_1_k_emb_2d = scores_1_k_emb.reshape(batch_size * k_, emb_size)
+
+    # [B * K, N]
+    scores_2, _ = score_candidates(s_emb=scores_1_k_emb_2d, p_emb=p_emb, candidates_emb=e_emb, k=None,
                                    entity_embeddings=entity_embeddings, scoring_function=scoring_function)
 
-    # [B, N, N]
-    scores_1 = scores_1.reshape(batch_size, nb_entities, 1).repeat(1, 1, nb_entities)
-    scores_2 = scores_2.reshape(batch_size, nb_entities, nb_entities)
+    # [B * K, N]
+    scores_1_k = scores_1_k.reshape(batch_size, k_, 1).repeat(1, 1, nb_entities)
+    scores_2 = scores_2.reshape(batch_size, k_, nb_entities)
 
-    res = t_norm(scores_1, scores_2)
+    res = t_norm(scores_1_k, scores_2)
     res, _ = torch.max(res, dim=1)
 
     return res
