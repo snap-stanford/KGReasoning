@@ -56,7 +56,7 @@ class CQD(nn.Module):
         self.query_name_dict = query_name_dict
 
         sizes = (nentity, nrelation)
-        self.embeddings = nn.ModuleList([nn.Embedding(s, 2 * rank, sparse=True) for s in sizes[:2]])
+        self.embeddings = nn.ModuleList([nn.Embedding(s, 2 * rank, sparse=False) for s in sizes[:2]])
         self.embeddings[0].weight.data *= init_size
         self.embeddings[1].weight.data *= init_size
 
