@@ -129,7 +129,7 @@ Test up-DNF HITS3 at step 99999: 0.709496
 1p queries:
 
 ```bash
-$ PYTHONPATH=. python3 PYTHONPATH=. python3 main.py --do_test --data_path data/FB15k-237-q2b -n 1 -b 1000 -d 1000 --cpu_num 0 --geo cqd --tasks 1p --print_on_screen --test_batch_size 1 --checkpoint_path models/fb15k-237-q2b --cqd discrete --cuda
+$ PYTHONPATH=. python3 main.py --do_test --data_path data/FB15k-237-q2b -n 1 -b 1000 -d 1000 --cpu_num 0 --geo cqd --tasks 1p --print_on_screen --test_batch_size 1 --checkpoint_path models/fb15k-237-q2b --cqd discrete --cuda
 [..]
 Test 1p HITS3 at step 99999: 0.511910
 [..]
