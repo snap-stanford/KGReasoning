@@ -19,12 +19,20 @@ Our code is based on an implementation of ComplEx-N3 available [here](https://gi
 
 ## 1. Download the pre-trained models
 
-To download and decompress the pre-trained models, execute the folloing commands:
+To download and decompress the pre-trained models, execute the following commands:
 
 ```bash
 $ mkdir models/
 $ for i in "fb15k" "fb15k-237" "nell"; do for j in "betae" "q2b"; do wget -c http://data.neuralnoise.com/kgreasoning-cqd/$i-$j.tar.gz; done; done
 $ for i in *.tar.gz; do tar xvfz $i; done
+```
+
+In case you need to re-train the models from scratch, use the following command lines:
+
+```bash
+PYTHONPATH=. python3 main.py --do_train --do_valid --do_test --data_path data/FB15k-237-q2b -n 1 -b 2000 -d 1000 -lr 0.1 --warm_up_steps 100000000 --max_steps 100000 --cpu_num 0 --geo cqd --valid_steps 500 --tasks 1p --print_on_screen --test_batch_size 1000 --optimizer adagrad --reg_weight 0.1 --log_steps 500 --cuda --use-qa-iterator
+PYTHONPATH=. python3 main.py --do_train --do_valid --do_test --data_path data/FB15k-q2b -n 1 -b 5000 -d 1000 -lr 0.1 --warm_up_steps 100000000 --max_steps 100000 --cpu_num 0 --geo cqd --valid_steps 500 --tasks 1p --print_on_screen --test_batch_size 1000 --optimizer adagrad --reg_weight 0.01 --log_steps 500 --cuda --use-qa-iterator
+PYTHONPATH=. python3 main.py --do_train --do_valid --do_test --data_path data/NELL-q2b -n 1 -b 2000 -d 1000 -lr 0.1 --warm_up_steps 100000000 --max_steps 100000 --cpu_num 0 --geo cqd --valid_steps 500 --tasks 1p --print_on_screen --test_batch_size 1000 --optimizer adagrad --reg_weight 0.1 --log_steps 500 --cuda --use-qa-iterator
 ```
 
 ## 2. Answer the complex queries
