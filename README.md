@@ -1,7 +1,9 @@
 # KGReasoning
-This repo contains several algorithms for multi-hop reasoning on knowledge graphs, including the official Pytorch implementation of [Beta Embeddings for Multi-Hop Logical Reasoning in Knowledge Graphs](https://arxiv.org/abs/2010.11465).
+
+This repo contains several algorithms for multi-hop reasoning on knowledge graphs, including the official PyTorch implementation of [Beta Embeddings for Multi-Hop Logical Reasoning in Knowledge Graphs](https://arxiv.org/abs/2010.11465) and a PyTorch implementation of [Complex Query Answering with Neural Link Predictors](https://arxiv.org/abs/2011.03459).
 
 **Models**
+- [x] [CQD](https://arxiv.org/abs/2011.03459)
 - [x] [BetaE](https://arxiv.org/abs/2010.11465)
 - [x] [Query2box](https://arxiv.org/abs/2002.05969)
 - [x] [GQE](https://arxiv.org/abs/1806.01445)

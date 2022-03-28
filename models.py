@@ -5,20 +5,14 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
-import random
-import pickle
-import math
 import collections
-import itertools
-import time
+
+from cqd import CQD
+
 from tqdm import tqdm
-import os
 
 def Identity(x):
     return x
@@ -584,16 +578,24 @@ class KGReasoning(nn.Module):
             negative_sample = negative_sample.cuda()
             subsampling_weight = subsampling_weight.cuda()
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+        if isinstance(model, CQD):
+            input_batch = batch_queries_dict[('e', ('r',))]
+            input_batch = torch.cat((input_batch, positive_sample.unsqueeze(1)), dim=1)
+            loss = model.loss(input_batch)
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
+            positive_sample_loss = negative_sample_loss = loss
+        else:
+            positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
-        loss = (positive_sample_loss + negative_sample_loss)/2
+            negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
+            positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
+            positive_sample_loss = - (subsampling_weight * positive_score).sum()
+            negative_sample_loss = - (subsampling_weight * negative_score).sum()
+            positive_sample_loss /= subsampling_weight.sum()
+            negative_sample_loss /= subsampling_weight.sum()
+
+            loss = (positive_sample_loss + negative_sample_loss)/2
+
         loss.backward()
         optimizer.step()
         log = {
@@ -611,7 +613,10 @@ class KGReasoning(nn.Module):
         total_steps = len(test_dataloader)
         logs = collections.defaultdict(list)
 
-        with torch.no_grad():
+        requires_grad = isinstance(model, CQD) and model.method == 'continuous'
+
+        # with torch.no_grad():
+        with torch.set_grad_enabled(requires_grad):
             for negative_sample, queries, queries_unflatten, query_structures in tqdm(test_dataloader, disable=not args.print_on_screen):
                 batch_queries_dict = collections.defaultdict(list)
                 batch_idxs_dict = collections.defaultdict(list)
@@ -634,18 +639,11 @@ class KGReasoning(nn.Module):
                 if len(argsort) == args.test_batch_size: # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
                     ranking = ranking.scatter_(1, argsort, model.batch_entity_range) # achieve the ranking of all entities
                 else: # otherwise, create a new torch Tensor for batch_entity_range
+                    scatter_src = torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 1)
                     if args.cuda:
-                        ranking = ranking.scatter_(1, 
-                                                   argsort, 
-                                                   torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 
-                                                                                                      1).cuda()
-                                                   ) # achieve the ranking of all entities
-                    else:
-                        ranking = ranking.scatter_(1, 
-                                                   argsort, 
-                                                   torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 
-                                                                                                      1)
-                                                   ) # achieve the ranking of all entities
+                        scatter_src = scatter_src.cuda()
+                    # achieve the ranking of all entities
+                    ranking = ranking.scatter_(1, argsort, scatter_src)
                 for idx, (i, query, query_structure) in enumerate(zip(argsort[:, 0], queries_unflatten, query_structures)):
                     hard_answer = hard_answers[query]
                     easy_answer = easy_answers[query]
